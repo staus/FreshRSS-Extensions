@@ -1,0 +1,188 @@
+<form action="<?php echo _url('extension', 'configure', 'e', urlencode($this->getName())); ?>" method="post">
+	<input type="hidden" name="_csrf" value="<?php echo FreshRSS_Auth::csrfToken(); ?>" />
+	<div class="form-group">
+		<label class="group-name" for="daily_spread_interval_hours">Refresh interval</label>
+		<div class="group-controls">
+			<input
+				type="number"
+				min="1"
+				id="daily_spread_interval_hours"
+				name="daily_spread_interval_hours"
+				value="<?php echo $this->refreshIntervalHours; ?>"
+				class="w25"
+				required="required"
+			/>
+			<p class="group-description">
+				Feeds that keep the default FreshRSS TTL are updated once every <?php echo $this->refreshIntervalHours; ?> hour(s).
+				Each feed receives a deterministic daily slot so large collections are spread evenly instead of piling on your RSSHub.
+			</p>
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="group-name" for="daily_spread_rsshub_hosts">RSSHub hosts</label>
+		<div class="group-controls">
+			<textarea
+				id="daily_spread_rsshub_hosts"
+				name="daily_spread_rsshub_hosts"
+				rows="6"
+				class="w70"
+				placeholder="rsshub.app&#10;rsshub.your-domain.example&#10;https://rsshub.example.com"><?php echo htmlspecialchars($this->rsshubHostInput, ENT_NOQUOTES, 'UTF-8'); ?></textarea>
+			<p class="group-description">
+				One host or URL per line (or comma separated). You can enter hostnames (e.g., <code>rsshub.app</code>) or full URLs (e.g., <code>https://rsshub.example.com</code>).
+				Matching feeds get a second request shortly after their daily slot to take advantage of RSSHub's cache warm-up behaviour.
+			</p>
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="group-name" for="daily_spread_rsshub_followup_minutes">RSSHub follow-up delay</label>
+		<div class="group-controls">
+			<input
+				type="number"
+				min="0"
+				id="daily_spread_rsshub_followup_minutes"
+				name="daily_spread_rsshub_followup_minutes"
+				value="<?php echo $this->rsshubFollowupMinutes; ?>"
+				class="w25"
+				required="required"
+			/>
+			<p class="group-description">
+				Time in minutes between the priming request and the cache read.
+				Set to <code>0</code> to disable the second request.
+				The actual delay cannot be shorter than the schedule of your <code>actualize_script.php</code> cron (Picapod usually runs at xx:07 and xx:37).
+			</p>
+		</div>
+	</div>
+
+	<div class="form-group form-actions">
+		<div class="group-controls">
+			<button type="submit" class="btn btn-important"><?php echo _t('gen.action.submit'); ?></button>
+			<button type="reset" class="btn"><?php echo _t('gen.action.cancel'); ?></button>
+		</div>
+	</div>
+</form>
+
+<div class="callout info">
+	<p>
+		Make sure your feeds use the default TTL ("By default" in feed settings).
+		This extension only changes scheduling for default feeds so you can still keep custom polling rules where needed.
+	</p>
+</div>
+
+<?php
+$timingPreview = $this->getTimingPreview();
+$rsshubTimings = $timingPreview['rsshub'];
+$regularTimings = $timingPreview['regular'];
+?>
+
+<div class="table-wrapper timing-preview">
+	<div class="timing-tabs">
+		<button type="button" class="timing-tab-btn active" data-target="timing-rsshub">RSSHub timings</button>
+		<button type="button" class="timing-tab-btn" data-target="timing-regular">Other timings</button>
+	</div>
+
+	<div id="timing-rsshub" class="timing-tab active">
+		<?php if (empty($rsshubTimings)) { ?>
+			<p>No RSSHub feeds detected with the current host list.</p>
+		<?php } else { ?>
+		<table>
+			<thead>
+				<tr>
+					<th>Feed</th>
+					<th>Fetch time</th>
+					<th>Status</th>
+				</tr>
+			</thead>
+			<tbody>
+			<?php foreach ($rsshubTimings as $row) { ?>
+				<tr>
+					<td>
+						<a class="configure" target="_blank" href="<?= _url('subscription', 'feed', 'id', $row['feedId']) ?>" title="<?= _t('gen.action.manage') ?>"><?= _i('configure') ?></a>
+						<?= htmlspecialchars($row['feedName'], ENT_NOQUOTES, 'UTF-8') ?>
+					</td>
+					<td><?= date('Y-m-d H:i', (int) $row['fetchTime']) ?></td>
+					<td><?= htmlspecialchars((string) $row['status'], ENT_NOQUOTES, 'UTF-8') ?></td>
+				</tr>
+			<?php } ?>
+			</tbody>
+		</table>
+		<?php } ?>
+	</div>
+
+	<div id="timing-regular" class="timing-tab">
+		<?php if (empty($regularTimings)) { ?>
+			<p>No non-RSSHub feeds using the default TTL.</p>
+		<?php } else { ?>
+		<table>
+			<thead>
+				<tr>
+					<th>Feed</th>
+					<th>Fetch time</th>
+					<th>Status</th>
+				</tr>
+			</thead>
+			<tbody>
+			<?php foreach ($regularTimings as $row) { ?>
+				<tr>
+					<td>
+						<a class="configure" target="_blank" href="<?= _url('subscription', 'feed', 'id', $row['feedId']) ?>" title="<?= _t('gen.action.manage') ?>"><?= _i('configure') ?></a>
+						<?= htmlspecialchars($row['feedName'], ENT_NOQUOTES, 'UTF-8') ?>
+					</td>
+					<td><?= date('Y-m-d H:i', (int) $row['fetchTime']) ?></td>
+					<td><?= htmlspecialchars((string) $row['status'], ENT_NOQUOTES, 'UTF-8') ?></td>
+				</tr>
+			<?php } ?>
+			</tbody>
+		</table>
+		<?php } ?>
+	</div>
+</div>
+
+<style>
+.timing-tabs {
+	display: flex;
+	gap: 0.5rem;
+	margin-bottom: 1rem;
+}
+.timing-tab-btn {
+	border: 1px solid var(--color-border);
+	background: var(--color-bg-secondary);
+	padding: 0.4rem 0.8rem;
+	cursor: pointer;
+}
+.timing-tab-btn.active {
+	background: var(--color-bg);
+	font-weight: bold;
+}
+.timing-tab {
+	display: none;
+}
+.timing-tab.active {
+	display: block;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+	const buttons = document.querySelectorAll('.timing-tab-btn');
+	const tabs = document.querySelectorAll('.timing-tab');
+
+	buttons.forEach((btn) => {
+		btn.addEventListener('click', () => {
+			const targetId = btn.getAttribute('data-target');
+
+			buttons.forEach((b) => b.classList.remove('active'));
+			btn.classList.add('active');
+
+			tabs.forEach((tab) => {
+				if (tab.id === targetId) {
+					tab.classList.add('active');
+				} else {
+					tab.classList.remove('active');
+				}
+			});
+		});
+	});
+});
+</script>

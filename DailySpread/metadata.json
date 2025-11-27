@@ -1,0 +1,8 @@
+{
+  "name": "Daily Spread",
+  "author": "Staus",
+  "description": "Stagger feed refreshes over the day and schedule RSSHub follow-up pulls to avoid cache misses.",
+  "version": "1.0.0",
+  "entrypoint": "DailySpread",
+  "type": "user"
+}

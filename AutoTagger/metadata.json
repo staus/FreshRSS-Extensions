@@ -1,0 +1,8 @@
+{
+  "name": "AutoTagger",
+  "author": "Staus",
+  "description": "Automatically tag articles based on user-defined regular expression patterns.",
+  "version": "1.0.0",
+  "entrypoint": "AutoTagger",
+  "type": "user"
+}
