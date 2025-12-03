@@ -1,0 +1,65 @@
+<form action="<?php echo _url('extension', 'configure', 'e', urlencode($this->getName())); ?>" method="post">
+	<input type="hidden" name="_csrf" value="<?php echo FreshRSS_Auth::csrfToken(); ?>" />
+	
+	<div class="form-group">
+		<label class="group-name" for="disableretryafter_domains">Domains to bypass Retry-After</label>
+		<div class="group-controls">
+			<textarea
+				id="disableretryafter_domains"
+				name="disableretryafter_domains"
+				rows="8"
+				class="w100"
+				placeholder="Enter one domain per line (or comma-separated)&#10;Examples:&#10;rsshub.app&#10;172.17.0.1&#10;rsshub.example.com"><?php echo htmlspecialchars($this->getDomainsInput(), ENT_NOQUOTES, 'UTF-8'); ?></textarea>
+			<p class="group-description">
+				Enter domains that should not be blocked by the "Retry-After" mechanism. One domain per line or comma-separated.
+				You can enter hostnames (e.g., <code>rsshub.app</code>), IP addresses (e.g., <code>172.17.0.1</code>), or full URLs (protocols and ports will be stripped automatically).
+				Subdomains are automatically matched (e.g., <code>rsshub.app</code> will also match <code>subdomain.rsshub.app</code>).
+			</p>
+		</div>
+	</div>
+
+	<div class="form-group">
+		<label class="group-name" for="disableretryafter_disable_all">
+			<input
+				type="checkbox"
+				id="disableretryafter_disable_all"
+				name="disableretryafter_disable_all"
+				value="on"
+				<?php echo $this->getDisableAll() ? 'checked="checked"' : ''; ?>
+			/>
+			Completely disable Retry-After mechanism
+		</label>
+		<div class="group-controls">
+			<p class="group-description">
+				When enabled, the "Retry-After" mechanism is completely disabled for all domains.
+				This overrides the domain list above. Use with caution as this may cause excessive requests to servers.
+			</p>
+		</div>
+	</div>
+
+	<div class="form-group form-actions">
+		<div class="group-controls">
+			<button type="submit" class="btn btn-important"><?php echo _t('gen.action.submit'); ?></button>
+			<button type="reset" class="btn"><?php echo _t('gen.action.cancel'); ?></button>
+		</div>
+	</div>
+</form>
+
+<div class="callout info">
+	<p>
+		<strong>How it works:</strong> This extension intercepts feed fetching and clears the "Retry-After" state for domains in your bypass list (or all domains if the global disable option is enabled).
+		This allows feeds from these domains to be refreshed even when FreshRSS would normally wait due to a previous 429/503 error.
+	</p>
+	<p>
+		<strong>Use cases:</strong>
+	</p>
+	<ul>
+		<li><strong>RSSHub feeds:</strong> RSSHub can have frequent but short-lived failures. Add your RSSHub domain(s) to bypass the retry-after mechanism.</li>
+		<li><strong>Self-hosted services:</strong> If you run your own RSS aggregators or services, add their domains to avoid being locked out after temporary failures.</li>
+		<li><strong>Local networks:</strong> Add local IP addresses (e.g., <code>172.17.0.1</code>, <code>192.168.1.1</code>) to bypass retry-after for local services.</li>
+	</ul>
+	<p>
+		<strong>Note:</strong> This extension works by clearing the retry-after state before feed fetching. If a domain is already in a retry-after cooldown period, you may need to wait for the next feed refresh cycle for the bypass to take effect.
+	</p>
+</div>
+

@@ -10,6 +10,7 @@ class DailySpreadExtension extends Minz_Extension
     private const FOLLOWUP_DELAY_CONF_KEY = 'daily_spread_rsshub_followup_seconds';
     private const FOLLOWUP_QUEUE_CONF_KEY = 'daily_spread_pending_followups';
     private const LAST_DISCOVERY_KEY = 'daily_spread_last_discovery';
+    private const STATS_LOG_INTERVAL_SECONDS = 1_800; // 30 minutes
 
     public int $refreshIntervalHours = 24;
 
@@ -398,7 +399,7 @@ class DailySpreadExtension extends Minz_Extension
     }
 
     /**
-     * Log aggregated stats periodically (every 30 seconds or on shutdown).
+     * Log aggregated stats periodically (every cron run ~30 minutes or on shutdown).
      */
     public function logAggregatedStats(): void
     {
@@ -415,9 +416,9 @@ class DailySpreadExtension extends Minz_Extension
         $now = time();
         $timeSinceLastLog = $now - self::$lastStatsLogTime;
 
-        $logInterval = 3600; // one hour
+        $logInterval = self::STATS_LOG_INTERVAL_SECONDS;
 
-        // Log once per hour (or when forced)
+        // Log once per cron window (or when forced)
         if (!$force && $timeSinceLastLog < $logInterval) {
             return;
         }

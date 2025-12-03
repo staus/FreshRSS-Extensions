@@ -136,7 +136,7 @@ class AutoTaggerExtension extends Minz_Extension
                     $regex = '/' . $pattern . '/i';
                     if (preg_match($regex, $textToMatch)) {
                         $labelName = self::LABEL_CATEGORIES[$category];
-                        $matchedLabels[] = $labelName;
+                        $matchedLabels[] = sprintf('AutoTagger: %s', $labelName);
                         $this->logDebug(
                             'Matched pattern "%s" for category "%s" in entry "%s"',
                             $pattern,
@@ -161,21 +161,18 @@ class AutoTaggerExtension extends Minz_Extension
         // In FreshRSS, tags can function as labels/categories
         $existingTags = $entry->tags() ?? [];
         
-        if (!empty($matchedLabels)) {
-            // Add matched labels
-            $allTags = array_unique(array_merge($existingTags, $matchedLabels));
-            $entry->_tags($allTags);
-        } else {
-            // If no labels matched, add "Checked by AutoTagger" to indicate the entry was processed
-            $checkedTag = 'Checked by AutoTagger';
-            if (!in_array($checkedTag, $existingTags, true)) {
-                $allTags = array_unique(array_merge($existingTags, [$checkedTag]));
-                $entry->_tags($allTags);
-                $this->logDebug(
-                    'No patterns matched for entry "%s", added "Checked by AutoTagger" tag',
-                    substr($title, 0, 50)
-                );
-            }
+        $tagsToAdd = !empty($matchedLabels)
+            ? $matchedLabels
+            : ['AutoTagger: none'];
+
+        $allTags = array_unique(array_merge($existingTags, $tagsToAdd));
+        $entry->_tags($allTags);
+
+        if (empty($matchedLabels)) {
+            $this->logDebug(
+                'No patterns matched for entry "%s", added "AutoTagger: none" tag',
+                substr($title, 0, 50)
+            );
         }
 
         return $entry;

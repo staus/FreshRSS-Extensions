@@ -77,12 +77,8 @@ $regularTimings = $timingPreview['regular'];
 ?>
 
 <div class="table-wrapper timing-preview">
-	<div class="timing-tabs">
-		<button type="button" class="timing-tab-btn active" data-target="timing-rsshub">RSSHub timings</button>
-		<button type="button" class="timing-tab-btn" data-target="timing-regular">Other timings</button>
-	</div>
-
-	<div id="timing-rsshub" class="timing-tab active">
+	<h3 class="timing-heading">RSSHub timings</h3>
+	<div id="timing-rsshub">
 		<?php if (empty($rsshubTimings)) { ?>
 			<p>No RSSHub feeds detected with the current host list.</p>
 		<?php } else { ?>
@@ -110,7 +106,8 @@ $regularTimings = $timingPreview['regular'];
 		<?php } ?>
 	</div>
 
-	<div id="timing-regular" class="timing-tab">
+	<h3 class="timing-heading">Other timings</h3>
+	<div id="timing-regular">
 		<?php if (empty($regularTimings)) { ?>
 			<p>No non-RSSHub feeds using the default TTL.</p>
 		<?php } else { ?>
@@ -140,49 +137,13 @@ $regularTimings = $timingPreview['regular'];
 </div>
 
 <style>
-.timing-tabs {
-	display: flex;
-	gap: 0.5rem;
-	margin-bottom: 1rem;
+.timing-heading {
+	margin: 1.5rem 0 0.5rem;
+	border-bottom: 1px solid var(--color-border);
+	padding-bottom: 0.3rem;
+	font-size: 1.1rem;
 }
-.timing-tab-btn {
-	border: 1px solid var(--color-border);
-	background: var(--color-bg-secondary);
-	padding: 0.4rem 0.8rem;
-	cursor: pointer;
-}
-.timing-tab-btn.active {
-	background: var(--color-bg);
-	font-weight: bold;
-}
-.timing-tab {
-	display: none;
-}
-.timing-tab.active {
-	display: block;
+.timing-heading:first-of-type {
+	margin-top: 0;
 }
 </style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-	const buttons = document.querySelectorAll('.timing-tab-btn');
-	const tabs = document.querySelectorAll('.timing-tab');
-
-	buttons.forEach((btn) => {
-		btn.addEventListener('click', () => {
-			const targetId = btn.getAttribute('data-target');
-
-			buttons.forEach((b) => b.classList.remove('active'));
-			btn.classList.add('active');
-
-			tabs.forEach((tab) => {
-				if (tab.id === targetId) {
-					tab.classList.add('active');
-				} else {
-					tab.classList.remove('active');
-				}
-			});
-		});
-	});
-});
-</script>

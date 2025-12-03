@@ -1,0 +1,9 @@
+{
+  "name": "DisableRetryAfter",
+  "author": "Staus",
+  "description": "Allows bypassing or disabling the 'Retry-After' mechanism for specified domains, useful for RSSHub and self-hosted services.",
+  "version": "1.0.0",
+  "entrypoint": "DisableRetryAfter",
+  "type": "user"
+}
+
