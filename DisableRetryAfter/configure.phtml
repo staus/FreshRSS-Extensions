@@ -1,3 +1,9 @@
+<?php
+$conf = FreshRSS_Context::userConf();
+$domainsInput = $conf->attributeString('disableretryafter_domains', '');
+$disableAllStr = $conf->attributeString('disableretryafter_disable_all', '');
+$disableAll = in_array(strtolower($disableAllStr), ['1', 'true', 'on', 'yes'], true);
+?>
 <form action="<?php echo _url('extension', 'configure', 'e', urlencode($this->getName())); ?>" method="post">
 	<input type="hidden" name="_csrf" value="<?php echo FreshRSS_Auth::csrfToken(); ?>" />
 	
@@ -9,7 +15,7 @@
 				name="disableretryafter_domains"
 				rows="8"
 				class="w100"
-				placeholder="Enter one domain per line (or comma-separated)&#10;Examples:&#10;rsshub.app&#10;172.17.0.1&#10;rsshub.example.com"><?php echo htmlspecialchars($this->getDomainsInput(), ENT_NOQUOTES, 'UTF-8'); ?></textarea>
+				placeholder="Enter one domain per line (or comma-separated)&#10;Examples:&#10;rsshub.app&#10;172.17.0.1&#10;rsshub.example.com"><?php echo htmlspecialchars($domainsInput, ENT_NOQUOTES, 'UTF-8'); ?></textarea>
 			<p class="group-description">
 				Enter domains that should not be blocked by the "Retry-After" mechanism. One domain per line or comma-separated.
 				You can enter hostnames (e.g., <code>rsshub.app</code>), IP addresses (e.g., <code>172.17.0.1</code>), or full URLs (protocols and ports will be stripped automatically).
@@ -25,7 +31,7 @@
 				id="disableretryafter_disable_all"
 				name="disableretryafter_disable_all"
 				value="on"
-				<?php echo $this->getDisableAll() ? 'checked="checked"' : ''; ?>
+				<?php echo $disableAll ? 'checked="checked"' : ''; ?>
 			/>
 			Completely disable Retry-After mechanism
 		</label>
