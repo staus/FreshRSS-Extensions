@@ -1,0 +1,8 @@
+{
+  "name": "TDMchecker",
+  "author": "Staus",
+  "description": "Routinely checks if publishers have opted out of TDM (EU AI Act) and displays the status on feed management pages.",
+  "version": "1.0.0",
+  "entrypoint": "TDMchecker",
+  "type": "system"
+}

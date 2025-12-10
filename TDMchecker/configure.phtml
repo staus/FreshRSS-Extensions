@@ -1,0 +1,205 @@
+<?php
+$conf = FreshRSS_Context::userConf();
+$allStatuses = $conf->attributeArray('tdmchecker_status') ?? [];
+
+// Get all feeds for manual checking
+$feedDao = FreshRSS_Factory::createFeedDao();
+$feeds = $feedDao->listFeeds();
+?>
+
+<div class="form-group">
+	<p class="group-description">
+		TDMchecker automatically checks if publishers have opted out of TDM (EU AI Act) 
+		when feeds are refreshed. Results are cached for 24 hours.
+	</p>
+</div>
+
+<?php if (!empty($feeds)): ?>
+	<div class="form-group">
+		<table class="table">
+			<thead>
+				<tr>
+					<th>Feed Name</th>
+					<th>Website URL</th>
+					<th>Current Status</th>
+					<th>Last Checked</th>
+				</tr>
+			</thead>
+			<tbody>
+				<?php foreach ($feeds as $feed): 
+					$feedId = $feed->id();
+					$websiteUrl = $feed->website();
+					$status = $allStatuses[$feedId] ?? null;
+				?>
+					<tr style="display: flex; width: 100%;">
+						<td><?php echo htmlspecialchars($feed->name(), ENT_NOQUOTES, 'UTF-8'); ?></td>
+						<td style="flex: 1 !important;">
+							<?php if (!empty($websiteUrl)): ?>
+								<a href="<?php echo htmlspecialchars($websiteUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
+									<?php echo htmlspecialchars($websiteUrl, ENT_NOQUOTES, 'UTF-8'); ?>
+								</a>
+								<button type="button" class="btn tdmchecker-check-btn" data-feed-id="<?php echo $feedId; ?>" id="tdm-check-btn-<?php echo $feedId; ?>" style="margin-left: 10px;">
+									Check TDM
+								</button>
+								<span id="tdm-check-status-<?php echo $feedId; ?>" style="margin-left: 10px; display: none; font-size: 0.9em;"></span>
+							<?php else: ?>
+								<em>No website URL</em>
+							<?php endif; ?>
+						</td>
+						<td>
+							<span id="tdm-status-<?php echo $feedId; ?>">
+								<?php if ($status !== null): ?>
+									<span class="<?php echo $status['opt_out'] ? 'tdm-status-opted-out' : 'tdm-status-not-opted-out'; ?>">
+										<?php echo $status['opt_out'] ? 'true' : 'false'; ?>
+									</span>
+								<?php else: ?>
+									<span class="tdm-status-unknown">null (not checked)</span>
+								<?php endif; ?>
+							</span>
+						</td>
+						<td>
+							<span id="tdm-checked-at-<?php echo $feedId; ?>">
+								<?php if ($status !== null && isset($status['checked_at'])): ?>
+									<?php echo date('Y-m-d H:i:s', $status['checked_at']); ?>
+								<?php else: ?>
+									<em>Never</em>
+								<?php endif; ?>
+							</span>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+			</tbody>
+		</table>
+	</div>
+<?php else: ?>
+	<div class="form-group">
+		<div class="group-controls">
+			<p><em>No feeds found.</em></p>
+		</div>
+	</div>
+<?php endif; ?>
+
+<style>
+.tdm-status-opted-out {
+	color: #d63638;
+	font-weight: bold;
+}
+.tdm-status-not-opted-out {
+	color: #00a32a;
+	font-weight: bold;
+}
+.tdm-status-unknown {
+	color: #646970;
+	font-style: italic;
+}
+[id^="tdm-check-status-"] {
+	font-size: 0.9em;
+}
+</style>
+
+<script>
+(function() {
+	'use strict';
+	
+	function tdmcheckerCheckFeed(feedId) {
+		const btn = document.getElementById('tdm-check-btn-' + feedId);
+		const statusSpan = document.getElementById('tdm-status-' + feedId);
+		const checkedAtSpan = document.getElementById('tdm-checked-at-' + feedId);
+		const checkStatus = document.getElementById('tdm-check-status-' + feedId);
+		
+		if (!btn || btn.disabled) return;
+		
+		btn.disabled = true;
+		btn.textContent = 'Checking...';
+		if (checkStatus) {
+			checkStatus.style.display = 'inline';
+			checkStatus.textContent = '';
+		}
+		
+		const formData = new FormData();
+		formData.append('_csrf', '<?php echo FreshRSS_Auth::csrfToken(); ?>');
+		formData.append('check_feed_id', feedId);
+		formData.append('ajax', '1');
+		
+		fetch('<?php echo _url('extension', 'configure', 'e', urlencode($this->getName())); ?>', {
+			method: 'POST',
+			body: formData
+		})
+		.then(response => response.text())
+		.then(text => {
+			try {
+				const data = JSON.parse(text);
+				if (data.status === 'success') {
+					// Update status display
+					if (statusSpan) {
+						const optOut = data.opt_out ? 'true' : 'false';
+						const statusClass = data.opt_out ? 'tdm-status-opted-out' : 'tdm-status-not-opted-out';
+						statusSpan.innerHTML = '<span class="' + statusClass + '">' + optOut + '</span>';
+					}
+					
+					// Update checked at time
+					if (checkedAtSpan && data.checked_at) {
+						const date = new Date(data.checked_at * 1000);
+						const dateStr = date.getFullYear() + '-' + 
+							String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+							String(date.getDate()).padStart(2, '0') + ' ' +
+							String(date.getHours()).padStart(2, '0') + ':' +
+							String(date.getMinutes()).padStart(2, '0') + ':' +
+							String(date.getSeconds()).padStart(2, '0');
+						checkedAtSpan.textContent = dateStr;
+					}
+					
+					if (checkStatus) {
+						checkStatus.textContent = '✓ Checked';
+						checkStatus.style.color = '#00a32a';
+					}
+				} else {
+					if (checkStatus) {
+						checkStatus.textContent = '✗ Error: ' + (data.message || 'Unknown error');
+						checkStatus.style.color = '#d63638';
+					}
+				}
+			} catch (e) {
+				// If not JSON, might be HTML redirect - reload page
+				if (text.includes('gen.action.done') || text.includes('success')) {
+					location.reload();
+				} else {
+					if (checkStatus) {
+						checkStatus.textContent = '✗ Error: Invalid response';
+						checkStatus.style.color = '#d63638';
+					}
+				}
+			}
+		})
+		.catch(error => {
+			if (checkStatus) {
+				checkStatus.textContent = '✗ Error: ' + error.message;
+				checkStatus.style.color = '#d63638';
+			}
+		})
+		.finally(() => {
+			if (btn) {
+				btn.disabled = false;
+				btn.textContent = 'Check TDM';
+			}
+			if (checkStatus) {
+				setTimeout(() => {
+					checkStatus.style.display = 'none';
+				}, 3000);
+			}
+		});
+	}
+	
+	// Use event delegation to attach click handlers (CSP compliant)
+	document.addEventListener('DOMContentLoaded', function() {
+		document.addEventListener('click', function(e) {
+			if (e.target && e.target.classList.contains('tdmchecker-check-btn')) {
+				const feedId = parseInt(e.target.getAttribute('data-feed-id'));
+				if (feedId) {
+					tdmcheckerCheckFeed(feedId);
+				}
+			}
+		});
+	});
+})();
+</script>
